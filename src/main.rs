@@ -1,6 +1,9 @@
 use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
+mod utils;
+use utils::{parse_to_f64};
+
 // Single run is of the form as below:
 // run_hashmap = {
 //     "q_1": {
@@ -23,12 +26,14 @@ use std::collections::{BTreeMap, HashMap};
 // How did I forget that HashMaps are inherently unordered. So, even if I insert in a sorted order, they might not return the same order.
 // I am again thinking of using BTreeMaps and just switch the keys and the values.
 // This is the final structure of a run => Run: BTreeMap<String,BTreeMap<f64, String>> ;
+// Ok, turns out f64 does not have the Ord trait..ARGHHHH
+// Another way I could come up with is round these f64 to 2 decimal places and then convert to string. Strings can be ordered. I am a genius hehehe.
 
 // Takes a single query of a single run and calculates the ranks of the docs.
 
 #[derive(Debug)]
 struct Run {
-    data: BTreeMap<String, BTreeMap<f64, String>>,
+    data: BTreeMap<String, BTreeMap<String, String>>,
 }
 
 impl Run {
@@ -38,8 +43,9 @@ impl Run {
         }
     }
 
-    fn insert(&mut self, outer_key: String, mut sorted_inner_data: BTreeMap<f64, String>) {
-        self.data.insert(outer_key, sorted_inner_data);
+    // It will get sorted auto.
+    fn insert(&mut self, outer_key: String, inner_data: BTreeMap<String, String>) {
+        self.data.insert(outer_key, inner_data);
     }
 }
 
@@ -55,10 +61,13 @@ impl Runs {
         Runs { runs: Vec::new() }
     }
 
-    fn insert(&mut self, insert_run: Run){
+    fn insert(&mut self, insert_run: Run) {
         self.runs.push(insert_run);
     }
 }
+
+
+// So using the data structures above we have a guarantee that the Run will also be sorted in q_ids as well as the ranking values of the documents.
 
 fn rrf_score(single_query: &HashMap<String, f64>, k: usize) -> HashMap<String, f64> {
     let mut ind_computed_rank: HashMap<String, f64> = HashMap::new();
@@ -70,24 +79,23 @@ fn rrf_score(single_query: &HashMap<String, f64>, k: usize) -> HashMap<String, f
 }
 
 // Takes a single run and calculates the ranks of all the documents in all the queries. This is currently the main function to call
-fn rrf_score_parallel(
-    run_object: &Run,
-    k: usize,
-) -> Run {
-    let combined_result: Run = run_object.data
+fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
+    let combined_result: Run = run_object
+        .data
         .par_iter()
-        .map(|(q_id, single_query)| (q_id.clone(), rrf_score(single_query, k))).collect();
+        .map(|(q_id, single_query)| (q_id.clone(), rrf_score(single_query, k)))
+        .collect();
 
     combined_result
 }
 
-fn rrf(runs_object:Runs, k:usize)-> Run {
-    let dummy_run=Run::new();
-    let mut runs_object_returned:Runs=Runs::new();
-    for (i,runInstance) in runs_object.runs.iter().enumerate(){
-        let mut temp_run=Run::new();
-        temp_run.data=rrf_score_parallel(runInstance.data, k);
-        runs_object_returned.runs[i]=temp_run;
+fn rrf(runs_object: Runs, k: usize) -> Run {
+    let dummy_run = Run::new();
+    let mut runs_object_returned: Runs = Runs::new();
+    for (i, runInstance) in runs_object.runs.iter().enumerate() {
+        let mut temp_run = Run::new();
+        temp_run.data = rrf_score_parallel(runInstance.data, k);
+        runs_object_returned.runs[i] = temp_run;
     }
     // return comb_sum(runs_object_returned);
     dummy_run
