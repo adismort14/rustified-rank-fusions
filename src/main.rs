@@ -4,6 +4,9 @@ use std::collections::{BTreeMap, HashMap};
 mod utils;
 use utils::{f64_to_string, string_to_f64};
 
+mod data_struct;
+use data_struct::{Run,Runs};
+
 // Single run is of the form as below:
 // run_hashmap = {
 //     "q_1": {
@@ -31,95 +34,8 @@ use utils::{f64_to_string, string_to_f64};
 
 // Takes a single query of a single run and calculates the ranks of the docs.
 
-#[derive(Debug)]
-struct Run {
-    data: BTreeMap<String, BTreeMap<String, String>>,
-}
 
-// So using the data structures above we have a guarantee that the Run will also be sorted in q_ids as well as the ranking values of the documents.
-// I now need to create the required wrappers to convert a given a simple dictionary into a Run.
-
-impl Run {
-    fn new() -> Self {
-        Run {
-            data: BTreeMap::new(),
-        }
-    }
-
-    // It will get sorted auto.
-    fn insert(&mut self, outer_key: String, inner_data: BTreeMap<String, String>) {
-        self.data.insert(outer_key, inner_data);
-    }
-
-    // fn convert_to_run(input: HashMap<String, HashMap<String, f64>>) -> Run {
-    //     let mut run = Run::new();
-
-    //     for (outer_key, inner_map) in input {
-    //         let inner_data: BTreeMap<String, String> = inner_map
-    //             .into_iter()
-    //             .map(|(k, v)| (v.to_string(),k))
-    //             .collect();
-    //         run.insert(outer_key, inner_data);
-    //     }
-
-    //     run
-    // }
-
-    fn from_hashmap_to_run(input: HashMap<String, HashMap<String, f64>>) -> Self {
-        let mut run = Run::new();
-
-        for (outer_key, inner_map) in input {
-            let inner_data: BTreeMap<String, String> = inner_map
-                .into_iter()
-                .map(|(k, v)| (v.to_string(), k))
-                .collect();
-            run.insert(outer_key, inner_data);
-        }
-
-        run
-    }
-}
-
-// Runs = List[Run]
-
-// TODO: Check for passing by reference whereever we can.
-
-#[derive(Debug)]
-struct Runs {
-    runs: Vec<Run>,
-}
-
-impl Runs {
-    fn new() -> Self {
-        Runs { runs: Vec::new() }
-    }
-
-    fn new_with_cap(size: usize) -> Self {
-        Runs {
-            runs: Vec::with_capacity(size),
-        }
-    }
-
-    fn insert(&mut self, insert_run: Run) {
-        self.runs.push(insert_run);
-    }
-
-    fn from_list_of_hashmaps_runs(input: Vec<HashMap<String, HashMap<String, f64>>>) -> Self {
-        let mut runs = Runs::new();
-
-        for inner_map in input {
-            let run = Run::from_hashmap_to_run(inner_map);
-            runs.insert(run);
-        }
-
-        runs
-    }
-
-    fn len(&self) -> usize {
-        self.runs.len()
-    }
-}
-
+// Takes the doc ranking for a single query and modifies the scores using reciprocal ranking and returns the hashmap of (reciprocal_score_as_string, doc_id_string)
 fn rrf_score(single_query: &BTreeMap<String, String>, k: usize) -> BTreeMap<String, String> {
     let mut ind_computed_rank: BTreeMap<String, String> = BTreeMap::new();
     let mut reciprocal_rank: f64 = 0.0;
@@ -133,42 +49,85 @@ fn rrf_score(single_query: &BTreeMap<String, String>, k: usize) -> BTreeMap<Stri
 }
 
 // Takes a single run and calculates the ranks of all the documents in all the queries. This is currently the main function to call
-// fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
-//     let combined_result: Run = run_object
-//         .data
-//         .par_iter()
-//         .map(|(q_id, single_query)| (q_id.clone(), rrf_score(single_query, k)))
-//         .collect();
-
-//     combined_result
-// }
-
 fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
     let combined_result: BTreeMap<String, BTreeMap<String, String>> = run_object
-        .data
-        .iter()
+        .q_rank_map
+        .par_iter()
         .map(|(q_id, single_query)| ( q_id.clone(),rrf_score(single_query, k)))
         .collect();
 
     Run {
-        data: combined_result,
+        q_rank_map: combined_result,
     }
 }
 
 // Another issue is that there is no way to initialse a Vector with a certain size with all the elements of some value of Type run.
-fn rrf(runs_object: Runs, k: usize) -> Run {
-    let dummy_run = Run::new();
+
+// This is the public function which takes Runs and k as the input and returns the final combined Run.
+pub fn rrf(runs_object: Runs, k: usize) -> Run {
     // let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
     let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
     for runInstance in runs_object.runs.iter() {
         let temp_run = rrf_score_parallel(runInstance, k);
         runs_object_returned.runs.push(temp_run);
     }
-    // return comb_sum(runs_object_returned);
-    dummy_run
+    return comb_sum(&mut runs_object_returned);
 }
 
-fn comb_sum_parallel(run: HashMap<String, HashMap<String, f64>>) {}
+fn _comb_sum(results: Vec<BTreeMap<String, f64>>) -> BTreeMap<String, f64> {
+    let mut combined_results = create_empty_results_dict();
+
+    for res in &results {
+        for doc_id in res.keys() {
+            let doc_id = to_unicode(doc_id);
+            if !combined_results.contains_key(&doc_id) {
+                let sum: f64 = results.iter().map(|res| res.get(&doc_id).unwrap_or(&0.0)).sum();
+                combined_results.insert(doc_id.clone(), sum);
+            }
+        }
+    }
+
+    combined_results
+}
+
+// fn comb_sum_parallel(combined_run: &mut Run, run: &Run) {
+//     for (q_id, inner_map) in &run.data {
+//         let combined_inner_map = combined_run.data.entry(q_id.clone()).or_insert_with(BTreeMap::new);
+//         for (doc_id, value) in inner_map {
+//             *combined_inner_map.entry(doc_id.clone()).or_insert(0.0) += value;
+//         }
+//     }
+// }
+
+fn comb_sum_parallel(combined_run: &mut Run, run: &Run) {
+    // Assuming Run struct has a data field of type BTreeMap<String, BTreeMap<String, f64>>
+    for (q_id, inner_map) in &run.q_rank_map {
+        let combined_inner_map = combined_run.q_rank_map.entry(q_id.clone()).or_insert_with(BTreeMap::new);
+        for (value, doc_id) in inner_map {
+            let f64_value: f64 = value.parse().unwrap_or(0.0);
+            *combined_inner_map.entry(f64_value.to_string()).or_insert_with(|| doc_id.clone()) = doc_id.clone();
+        }
+    }
+}
+
+
+// fn comb_sum(runs: Runs) -> Run{
+//     let dummy_run = Run::new();
+
+//     dummy_run
+// }
+
+
+pub fn comb_sum(runs: &Runs) -> Run {
+    let mut combined_run = Run::new();
+    for run in &runs.runs{
+        comb_sum_parallel(&mut combined_run,run);
+    }
+    combined_run.sort();
+    combined_run
+}
+
+
 
 fn main() {
     // Dummy data for testing with a single run
