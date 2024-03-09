@@ -1,14 +1,11 @@
 // use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
-mod utils;
-use utils::{f64_to_string, string_to_f64};
-
 mod data_struct;
 use data_struct::{Run, Runs, DocRankingVec, push_and_sort};
 
 mod comb_sum;
-use comb_sum::{comb_sum};
+use comb_sum::comb_sum;
 
 // Single run is of the form as below:
 // run_hashmap = {
@@ -68,8 +65,8 @@ fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
 // This is the public function which takes Runs and k as the input and returns the final combined Run.
 pub fn rrf(runs_object: Runs, k: usize) -> Run {
     let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
-    for runInstance in runs_object.runs.iter() {
-        let temp_run = rrf_score_parallel(runInstance, k);
+    for run_instance in runs_object.runs.iter() {
+        let temp_run = rrf_score_parallel(run_instance, k);
         runs_object_returned.runs.push(temp_run);
     }
     return comb_sum(&mut runs_object_returned);
@@ -77,30 +74,65 @@ pub fn rrf(runs_object: Runs, k: usize) -> Run {
 
 fn main() {
     // Dummy data for testing with a single run
-    let run_hashmap: HashMap<String, HashMap<String, f64>> = [
-        (
-            String::from("q_1"),
-            [("d_1", 1.5), ("d_2", 2.6)]
-                .iter()
-                .map(|(k, v)| (String::from(*k), *v))
-                .collect(),
-        ),
-        (
-            String::from("q_2"),
-            [("d_3", 2.8), ("d_2", 1.2), ("d_5", 3.1)]
-                .iter()
-                .map(|(k, v)| (String::from(*k), *v))
-                .collect(),
-        ),
-    ]
-    .iter()
-    .cloned()
-    .collect::<HashMap<String, HashMap<String, f64>>>();
+    // let run_hashmap: HashMap<String, HashMap<String, f64>> = [
+    //     (
+    //         String::from("q_1"),
+    //         [("d_1", 1.5), ("d_2", 2.6)]
+    //             .iter()
+    //             .map(|(k, v)| (String::from(*k), *v))
+    //             .collect(),
+    //     ),
+    //     (
+    //         String::from("q_2"),
+    //         [("d_3", 2.8), ("d_2", 1.2), ("d_5", 3.1)]
+    //             .iter()
+    //             .map(|(k, v)| (String::from(*k), *v))
+    //             .collect(),
+    //     ),
+    // ]
+    // .iter()
+    // .cloned()
+    // .collect::<HashMap<String, HashMap<String, f64>>>();
 
     // Best empirical and default value of k according to the research paper
     let k = 60;
 
-    let combined_results = rrf_score_parallel(&run_hashmap, k);
+    // let combined_results = rrf_score_parallel(&run_hashmap, k);
 
-    print!("{:?}", combined_results);
+    // print!("{:?}", combined_results);
+
+    let mut sample_data = HashMap::new();
+    let mut inner_map1 = HashMap::new();
+    inner_map1.insert("doc1".to_string(), 1.5);
+    inner_map1.insert("doc2".to_string(), 0.8);
+    sample_data.insert("qid1".to_string(), inner_map1);
+
+    // Create Run instance from sample data
+    let run1 = Run::create_run_from_dict(sample_data);
+
+    let mut sample_data = HashMap::new();
+    let mut inner_map1 = HashMap::new();
+    inner_map1.insert("doc3".to_string(), 12.0);
+    inner_map1.insert("doc2".to_string(), 0.01);
+    let mut inner_map2 = HashMap::new();
+    inner_map2.insert("doc3".to_string(), 12.0);
+    inner_map2.insert("doc2".to_string(), 0.01);
+    sample_data.insert("qid4".to_string(), inner_map1);
+    sample_data.insert("qid1".to_string(), inner_map2);
+
+    // Create Run instance from sample data
+    let run2 = Run::create_run_from_dict(sample_data);
+
+    // Create Runs collection and insert the Run instance
+    let mut runs_collection = Runs::new();
+    runs_collection.insert(run1);
+    runs_collection.insert(run2);
+
+    // Display the content of Runs collection
+    println!("Runs collection: {:?}", runs_collection);
+
+    let final_answer=rrf(runs_collection,k);
+
+    println!("Runs collection: {:?}", final_answer);
+
 }

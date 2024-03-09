@@ -1,8 +1,4 @@
-use rayon::prelude::*;
-use std::collections::{BTreeMap, HashMap};
-
-use crate::{data_struct::{push_and_sort, DocRankingVec}, utils};
-use utils::{f64_to_string, string_to_f64};
+use crate::data_struct::push_and_sort;
 
 use crate::data_struct;
 use data_struct::{Run,Runs};
@@ -22,10 +18,6 @@ use data_struct::{Run,Runs};
 
 //     combined_results
 // }
-
-fn create_empty_results_dict() -> BTreeMap<String, String> {
-    BTreeMap::new()
-}
 
 // fn _comb_sum(results: Vec<BTreeMap<String, String>>) -> BTreeMap<String, String> {
 //     let mut combined_results: BTreeMap<String, String> = create_empty_results_dict();
