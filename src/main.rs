@@ -7,6 +7,9 @@ use utils::{f64_to_string, string_to_f64};
 mod data_struct;
 use data_struct::{Run,Runs};
 
+mod comb_sum;
+use comb_sum::{comb_sum};
+
 // Single run is of the form as below:
 // run_hashmap = {
 //     "q_1": {
@@ -65,7 +68,6 @@ fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
 
 // This is the public function which takes Runs and k as the input and returns the final combined Run.
 pub fn rrf(runs_object: Runs, k: usize) -> Run {
-    // let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
     let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
     for runInstance in runs_object.runs.iter() {
         let temp_run = rrf_score_parallel(runInstance, k);
@@ -73,61 +75,6 @@ pub fn rrf(runs_object: Runs, k: usize) -> Run {
     }
     return comb_sum(&mut runs_object_returned);
 }
-
-fn _comb_sum(results: Vec<BTreeMap<String, f64>>) -> BTreeMap<String, f64> {
-    let mut combined_results = create_empty_results_dict();
-
-    for res in &results {
-        for doc_id in res.keys() {
-            let doc_id = to_unicode(doc_id);
-            if !combined_results.contains_key(&doc_id) {
-                let sum: f64 = results.iter().map(|res| res.get(&doc_id).unwrap_or(&0.0)).sum();
-                combined_results.insert(doc_id.clone(), sum);
-            }
-        }
-    }
-
-    combined_results
-}
-
-// fn comb_sum_parallel(combined_run: &mut Run, run: &Run) {
-//     for (q_id, inner_map) in &run.data {
-//         let combined_inner_map = combined_run.data.entry(q_id.clone()).or_insert_with(BTreeMap::new);
-//         for (doc_id, value) in inner_map {
-//             *combined_inner_map.entry(doc_id.clone()).or_insert(0.0) += value;
-//         }
-//     }
-// }
-
-fn comb_sum_parallel(combined_run: &mut Run, run: &Run) {
-    // Assuming Run struct has a data field of type BTreeMap<String, BTreeMap<String, f64>>
-    for (q_id, inner_map) in &run.q_rank_map {
-        let combined_inner_map = combined_run.q_rank_map.entry(q_id.clone()).or_insert_with(BTreeMap::new);
-        for (value, doc_id) in inner_map {
-            let f64_value: f64 = value.parse().unwrap_or(0.0);
-            *combined_inner_map.entry(f64_value.to_string()).or_insert_with(|| doc_id.clone()) = doc_id.clone();
-        }
-    }
-}
-
-
-// fn comb_sum(runs: Runs) -> Run{
-//     let dummy_run = Run::new();
-
-//     dummy_run
-// }
-
-
-pub fn comb_sum(runs: &Runs) -> Run {
-    let mut combined_run = Run::new();
-    for run in &runs.runs{
-        comb_sum_parallel(&mut combined_run,run);
-    }
-    combined_run.sort();
-    combined_run
-}
-
-
 
 fn main() {
     // Dummy data for testing with a single run
