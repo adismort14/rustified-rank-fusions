@@ -3,10 +3,15 @@ use std::collections::{HashMap, BTreeMap};
 // // So using the data structures above we have a guarantee that the Run will also be sorted in both q_ids as well as the ranking values of the documents.
 // // I now need to create the required wrappers to convert a given a simple dictionary into a Run.
 
-type DocId = String;
-type RankingScore = f64;
-type DocRankingVec = Vec<(DocId, RankingScore)>;
-type QidMapping = BTreeMap<String, DocRankingVec>;
+pub type DocId = String;
+pub type RankingScore = f64;
+pub type DocRankingVec = Vec<(DocId, RankingScore)>;
+pub type QidMapping = BTreeMap<String, DocRankingVec>;
+
+pub fn push_and_sort(doc_ranking: &mut DocRankingVec, doc_id: DocId, ranking_score: RankingScore) {
+    doc_ranking.push((doc_id, ranking_score));
+    doc_ranking.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+}
 
 #[derive(Debug)]
 pub struct Run {
