@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
 mod utils;
-use utils::{parse_to_f64};
+use utils::parse_to_f64;
 
 // Single run is of the form as below:
 // run_hashmap = {
@@ -36,6 +36,9 @@ struct Run {
     data: BTreeMap<String, BTreeMap<String, String>>,
 }
 
+// So using the data structures above we have a guarantee that the Run will also be sorted in q_ids as well as the ranking values of the documents.
+// I now need to create the required wrappers to convert a given a simple dictionary into a Run.
+
 impl Run {
     fn new() -> Self {
         Run {
@@ -46,6 +49,34 @@ impl Run {
     // It will get sorted auto.
     fn insert(&mut self, outer_key: String, inner_data: BTreeMap<String, String>) {
         self.data.insert(outer_key, inner_data);
+    }
+
+    // fn convert_to_run(input: HashMap<String, HashMap<String, f64>>) -> Run {
+    //     let mut run = Run::new();
+
+    //     for (outer_key, inner_map) in input {
+    //         let inner_data: BTreeMap<String, String> = inner_map
+    //             .into_iter()
+    //             .map(|(k, v)| (v.to_string(),k))
+    //             .collect();
+    //         run.insert(outer_key, inner_data);
+    //     }
+
+    //     run
+    // }
+
+    fn from_hashmap_to_run(input: HashMap<String, HashMap<String, f64>>) -> Self {
+        let mut run = Run::new();
+
+        for (outer_key, inner_map) in input {
+            let inner_data: BTreeMap<String, String> = inner_map
+                .into_iter()
+                .map(|(k, v)| (v.to_string(), k))
+                .collect();
+            run.insert(outer_key, inner_data);
+        }
+
+        run
     }
 }
 
@@ -64,10 +95,18 @@ impl Runs {
     fn insert(&mut self, insert_run: Run) {
         self.runs.push(insert_run);
     }
+
+    fn from_list_of_hashmaps_runs(input: Vec<HashMap<String, HashMap<String, f64>>>) -> Self {
+        let mut runs = Runs::new();
+
+        for inner_map in input {
+            let run = Run::from_hashmap_to_run(inner_map);
+            runs.insert(run);
+        }
+
+        runs
+    }
 }
-
-
-// So using the data structures above we have a guarantee that the Run will also be sorted in q_ids as well as the ranking values of the documents.
 
 fn rrf_score(single_query: &HashMap<String, f64>, k: usize) -> HashMap<String, f64> {
     let mut ind_computed_rank: HashMap<String, f64> = HashMap::new();
