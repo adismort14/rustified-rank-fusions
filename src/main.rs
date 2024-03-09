@@ -7,8 +7,8 @@ use utils::{f64_to_string, string_to_f64};
 mod data_struct;
 use data_struct::{Run, Runs, DocRankingVec, push_and_sort};
 
-// mod comb_sum;
-// use comb_sum::{comb_sum};
+mod comb_sum;
+use comb_sum::{comb_sum};
 
 // Single run is of the form as below:
 // run_hashmap = {

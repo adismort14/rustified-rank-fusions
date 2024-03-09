@@ -10,6 +10,7 @@ pub type QidMapping = BTreeMap<String, DocRankingVec>;
 
 pub fn push_and_sort(doc_ranking: &mut DocRankingVec, doc_id: DocId, ranking_score: RankingScore) {
     doc_ranking.push((doc_id, ranking_score));
+    // The sorting has been done in reverse i.e. descending order.
     doc_ranking.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 }
 
