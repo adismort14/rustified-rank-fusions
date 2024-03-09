@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
 mod utils;
-use utils::parse_to_f64;
+use utils::{string_to_f64,f64_to_string};
 
 // Single run is of the form as below:
 // run_hashmap = {
@@ -82,6 +82,8 @@ impl Run {
 
 // Runs = List[Run]
 
+// TODO: Check for passing by reference whereever we can.
+
 #[derive(Debug)]
 struct Runs {
     runs: Vec<Run>,
@@ -90,6 +92,12 @@ struct Runs {
 impl Runs {
     fn new() -> Self {
         Runs { runs: Vec::new() }
+    }
+
+    fn new_with_cap(size: usize) -> Self {
+        Runs {
+            runs: Vec::with_capacity(size),
+        }
     }
 
     fn insert(&mut self, insert_run: Run) {
@@ -106,35 +114,53 @@ impl Runs {
 
         runs
     }
+
+    fn len(&self) -> usize {
+        self.runs.len()
+    }
 }
 
-fn rrf_score(single_query: &HashMap<String, f64>, k: usize) -> HashMap<String, f64> {
-    let mut ind_computed_rank: HashMap<String, f64> = HashMap::new();
-    for (i, (doc_id, _)) in single_query.iter().enumerate() {
-        ind_computed_rank.insert(doc_id.clone(), 1.0 / ((i as f64) + 1.0 + (k as f64)));
+fn rrf_score(single_query: &BTreeMap<String, String>, k: usize) -> BTreeMap<String, String> {
+    let mut ind_computed_rank: BTreeMap<String, String> = BTreeMap::new();
+    let mut calc_rank:f64=0.0;
+    for (i, (_, doc_id)) in single_query.iter().enumerate() {
+        calc_rank=(1.0 / ((i as f64) + 1.0 + (k as f64)));
+        ind_computed_rank.insert( f64_to_string(calc_rank),doc_id.clone());
     }
 
     ind_computed_rank
 }
 
 // Takes a single run and calculates the ranks of all the documents in all the queries. This is currently the main function to call
+// fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
+//     let combined_result: Run = run_object
+//         .data
+//         .par_iter()
+//         .map(|(q_id, single_query)| (q_id.clone(), rrf_score(single_query, k)))
+//         .collect();
+
+//     combined_result
+// }
+
 fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
-    let combined_result: Run = run_object
+    let combined_result: BTreeMap<String, HashMap<String, String>> = run_object
         .data
         .par_iter()
-        .map(|(q_id, single_query)| (q_id.clone(), rrf_score(single_query, k)))
+        .map(|(q_id, single_query)| (rrf_score(single_query, k),q_id.clone()))
         .collect();
 
-    combined_result
+    Run { data: combined_result }
 }
 
+// Another issue is that there is no way to initialse a Vector with a certain size with all the elements of some value of Type run.
 fn rrf(runs_object: Runs, k: usize) -> Run {
     let dummy_run = Run::new();
-    let mut runs_object_returned: Runs = Runs::new();
-    for (i, runInstance) in runs_object.runs.iter().enumerate() {
+    // let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
+    let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
+    for runInstance in runs_object.runs.iter() {
         let mut temp_run = Run::new();
-        temp_run.data = rrf_score_parallel(runInstance.data, k);
-        runs_object_returned.runs[i] = temp_run;
+        temp_run.data = rrf_score_parallel(runInstance, k);
+        runs_object_returned.runs.push(temp_run);
     }
     // return comb_sum(runs_object_returned);
     dummy_run
