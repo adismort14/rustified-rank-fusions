@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
 mod utils;
-use utils::{string_to_f64,f64_to_string};
+use utils::{f64_to_string, string_to_f64};
 
 // Single run is of the form as below:
 // run_hashmap = {
@@ -122,10 +122,11 @@ impl Runs {
 
 fn rrf_score(single_query: &BTreeMap<String, String>, k: usize) -> BTreeMap<String, String> {
     let mut ind_computed_rank: BTreeMap<String, String> = BTreeMap::new();
-    let mut calc_rank:f64=0.0;
+    let mut reciprocal_rank: f64 = 0.0;
     for (i, (_, doc_id)) in single_query.iter().enumerate() {
-        calc_rank=(1.0 / ((i as f64) + 1.0 + (k as f64)));
-        ind_computed_rank.insert( f64_to_string(calc_rank),doc_id.clone());
+        reciprocal_rank = 1.0 / ((i as f64) + 1.0 + (k as f64));
+        let rank_string = f64_to_string(reciprocal_rank);
+        ind_computed_rank.insert(rank_string, doc_id.clone());
     }
 
     ind_computed_rank
@@ -143,13 +144,15 @@ fn rrf_score(single_query: &BTreeMap<String, String>, k: usize) -> BTreeMap<Stri
 // }
 
 fn rrf_score_parallel(run_object: &Run, k: usize) -> Run {
-    let combined_result: BTreeMap<String, HashMap<String, String>> = run_object
+    let combined_result: BTreeMap<String, BTreeMap<String, String>> = run_object
         .data
-        .par_iter()
-        .map(|(q_id, single_query)| (rrf_score(single_query, k),q_id.clone()))
+        .iter()
+        .map(|(q_id, single_query)| ( q_id.clone(),rrf_score(single_query, k)))
         .collect();
 
-    Run { data: combined_result }
+    Run {
+        data: combined_result,
+    }
 }
 
 // Another issue is that there is no way to initialse a Vector with a certain size with all the elements of some value of Type run.
@@ -158,8 +161,7 @@ fn rrf(runs_object: Runs, k: usize) -> Run {
     // let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
     let mut runs_object_returned: Runs = Runs::new_with_cap(runs_object.len());
     for runInstance in runs_object.runs.iter() {
-        let mut temp_run = Run::new();
-        temp_run.data = rrf_score_parallel(runInstance, k);
+        let temp_run = rrf_score_parallel(runInstance, k);
         runs_object_returned.runs.push(temp_run);
     }
     // return comb_sum(runs_object_returned);
