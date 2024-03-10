@@ -1,7 +1,7 @@
 // use num_traits::Float;
 use rayon::prelude::*;
 
-use crate::common::{extract_scores, vec_mean, vec_stdev};
+use crate::normalization::common::{extract_scores, vec_mean, vec_stdev};
 use crate::data_struct::{push_and_sort, DocRankingVec, Run};
 
 // Make it use only the ones we need

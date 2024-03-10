@@ -8,7 +8,6 @@ mod comb_sum;
 use comb_sum::comb_sum;
 
 mod normalization;
-mod common;
 
 // Single run is of the form as below:
 // run_hashmap = {
@@ -77,32 +76,8 @@ pub fn rrf(runs_object: Runs, k: usize) -> Run {
 
 fn main() {
     // Dummy data for testing with a single run
-    // let run_hashmap: HashMap<String, HashMap<String, f64>> = [
-    //     (
-    //         String::from("q_1"),
-    //         [("d_1", 1.5), ("d_2", 2.6)]
-    //             .iter()
-    //             .map(|(k, v)| (String::from(*k), *v))
-    //             .collect(),
-    //     ),
-    //     (
-    //         String::from("q_2"),
-    //         [("d_3", 2.8), ("d_2", 1.2), ("d_5", 3.1)]
-    //             .iter()
-    //             .map(|(k, v)| (String::from(*k), *v))
-    //             .collect(),
-    //     ),
-    // ]
-    // .iter()
-    // .cloned()
-    // .collect::<HashMap<String, HashMap<String, f64>>>();
-
-    // Best empirical and default value of k according to the research paper
+    // Optimal Empirical and default value of k according to the research paper
     let k = 60;
-
-    // let combined_results = rrf_score_parallel(&run_hashmap, k);
-
-    // print!("{:?}", combined_results);
 
     let mut sample_data = HashMap::new();
     let mut inner_map1 = HashMap::new();
@@ -110,7 +85,6 @@ fn main() {
     inner_map1.insert("doc2".to_string(), 0.8);
     sample_data.insert("qid1".to_string(), inner_map1);
 
-    // Create Run instance from sample data
     let run1 = Run::create_run_from_dict(sample_data);
 
     let mut sample_data = HashMap::new();
@@ -123,15 +97,12 @@ fn main() {
     sample_data.insert("qid4".to_string(), inner_map1);
     sample_data.insert("qid1".to_string(), inner_map2);
 
-    // Create Run instance from sample data
     let run2 = Run::create_run_from_dict(sample_data);
 
-    // Create Runs collection and insert the Run instance
     let mut runs_collection = Runs::new();
     runs_collection.insert(run1);
     runs_collection.insert(run2);
 
-    // Display the content of Runs collection
     println!("Runs collection: {:?}", runs_collection);
 
     let final_answer=rrf(runs_collection,k);
