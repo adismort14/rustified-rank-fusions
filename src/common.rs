@@ -23,3 +23,8 @@ pub fn safe_min(input_score_vec: &Vec<f64>) -> f64 {
     }
     0.0
 }
+
+pub fn sum_vec(input_score_vec: &Vec<f64>) -> f64{
+    let sumVal: f64 = input_score_vec.iter().sum();
+    sumVal
+}
