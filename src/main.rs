@@ -7,6 +7,9 @@ use data_struct::{Run, Runs, DocRankingVec, push_and_sort};
 mod comb_sum;
 use comb_sum::comb_sum;
 
+mod normalization;
+mod common;
+
 // Single run is of the form as below:
 // run_hashmap = {
 //     "q_1": {
