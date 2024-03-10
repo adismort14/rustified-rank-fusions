@@ -28,3 +28,18 @@ pub fn sum_vec(input_score_vec: &Vec<f64>) -> f64{
     let sumVal: f64 = input_score_vec.iter().sum();
     sumVal
 }
+
+pub fn vec_mean(data: &[f64]) -> f64 {
+    let sum: f64 = data.iter().sum();
+    sum / data.len() as f64
+}
+
+fn variance(data: &[f64]) -> f64 {
+    let mu = vec_mean(data);
+    let sq_diff_sum: f64 = data.iter().map(|x| (x - mu).powi(2)).sum();
+    sq_diff_sum / (data.len() - 1) as f64
+}
+
+pub fn vec_stdev(data: &[f64]) -> f64 {
+    variance(data).sqrt()
+}
