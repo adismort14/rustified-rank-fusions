@@ -37,11 +37,11 @@ use rustified_rank_fusions::{rrf};
 
 ## Contributing
 
-Contributions are welcome! If you find any bugs or have suggestions for improvements, please [open an issue](https://github.com/adismort14/rustified-rank-fusions/issues) on the GitHub repository.
+Contributions are welcome! If you find any bugs or have suggestions for improvements (oh, you will find many), please (~don't~) [open an issue](https://github.com/adismort14/rustified-rank-fusions/issues) on the GitHub repository.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [do whatever the duck you want with this](LICENSE).
 
 
 
